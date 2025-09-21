@@ -1,0 +1,7 @@
+opencv-python
+ultralytics
+numpy
+pygame
+opencv-contrib-python
+opencv-python
+pytesseract
