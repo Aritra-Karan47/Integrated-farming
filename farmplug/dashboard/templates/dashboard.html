@@ -1,0 +1,83 @@
+<!-- dashboard/templates/dashboard.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FarmPlug Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 sidebar">
+                <h5>User Profile</h5>
+                <p>{{ user.username }}</p>
+                <hr>
+                <h5>Farming Types</h5>
+                <ul>
+                    {% for ft in farming_types %}
+                        <li><a href="?type={{ ft.name }}">{{ ft.name }}</a></li>
+                    {% endfor %}
+                </ul>
+                <hr>
+                <p>CCTV Modules (Placeholder)</p>
+            </div>
+            <div class="col-md-10 main">
+                <div class="weather-bar">
+                    <p>Weather: {{ weather.temp }}°C, {{ weather.description }}</p>
+                </div>
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link {% if view == 'graphs' %}active{% endif %}" href="?type={{ selected_type }}&view=graphs">Sensors</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if view == 'notes' %}active{% endif %}" href="?type={{ selected_type }}&view=notes">Notes</a>
+                    </li>
+                </ul>
+                {% if view == 'graphs' and sensor_data %}
+                    <div class="graphs">
+                        {% for sensor, data in sensor_data.items %}
+                            <canvas id="{{ sensor }}_chart"></canvas>
+                            <script>
+                                var ctx = document.getElementById('{{ sensor }}_chart').getContext('2d');
+                                var chart = new Chart(ctx, {
+                                    type: 'line',
+                                    data: {
+                                        datasets: [{
+                                            label: '{{ sensor }}',
+                                            data: {{ data|safe }},
+                                            parsing: {xAxisKey: 'timestamp', yAxisKey: 'value'}
+                                        }]
+                                    },
+                                });
+                            </script>
+                        {% endfor %}
+                    </div>
+                {% elif view == 'notes' and tasks %}
+                    <div class="notes">
+                        <h3>Daily Tasks for {{ selected_type }}</h3>
+                        <p>{{ tasks }}</p>
+                    </div>
+                {% else %}
+                    <p>No data available for selected type or view.</p>
+                {% endif %}
+                <div class="sensor-list">
+                    <h5>Sensor Data</h5>
+                    {% if sensor_data %}
+                        {% for sensor in sensor_data %}
+                            <div class="card mb-2">
+                                <div class="card-body">
+                                    <h6>{{ sensor }}: {{ sensor_data.sensor|last.value|default:"N/A" }}</h6>
+                                    <p>Recommendation: TBD</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
