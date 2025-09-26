@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CCTV Human Detection</title>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/cctv_human_detection">CCTV Human Detection</a>
+        <a href="/motor_control">Motor Movement Control</a>
+    </div>
+    <div class="main">
+        <h1>CCTV Human Detection</h1>
+        <button id="startBtn" onclick="toggleCCTV()">Start Detection</button>
+        <img id="videoFeed" src="" style="display: none;" width="640" height="480">
+        <script>
+            let isRunning = false;
+            const startBtn = document.getElementById('startBtn');
+            const videoFeed = document.getElementById('videoFeed');
+
+            async function toggleCCTV() {
+                if (isRunning) {
+                    isRunning = false;
+                    startBtn.innerText = "Start Detection";
+                    videoFeed.style.display = "none";
+                    videoFeed.src = "";
+                } else {
+                    const response = await fetch('/cctv_stream');
+                    const data = await response.json();
+                    alert(data.message);
+                    isRunning = true;
+                    startBtn.innerText = "Stop Detection";
+                    videoFeed.style.display = "block";
+                    videoFeed.src = "/cctv_stream";  # Note: StreamingResponse needs to be accessed via img src for multipart
+                }
+            }
+        </script>
+    </div>
+</body>
+</html>

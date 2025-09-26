@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tray Count</title>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/cctv_human_detection">CCTV Human Detection</a>
+        <a href="/motor_control">Motor Movement Control</a>
+    </div>
+    <div class="main">
+        <h1>Tray Count Detection</h1>
+        <p>Detected Tray Count: {{ tray_count }}</p>
+        <button onclick="refreshTrayCount()">Refresh Detection</button>
+        <script>
+            const token = document.cookie.split('; ').find(row => row.startsWith('access_token=')).split('=')[1];
+
+            async function refreshTrayCount() {
+                const response = await fetch('/tray_count', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                location.reload();
+            }
+        </script>
+    </div>
+</body>
+</html>

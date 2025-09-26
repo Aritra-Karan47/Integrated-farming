@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FarmPlug Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar { background-color: #f4f4f4; padding: 10px; }
+        .sidebar a { display: block; margin-bottom: 10px; }
+        .toggle { margin: 10px 0; }
+        .toggle a { margin-right: 10px; text-decoration: none; }
+        .sensor-list { margin: 10px 0; }
+        .sensor-list a { margin-right: 10px; cursor: pointer; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2196F3; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .off { filter: grayscale(100%); opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/cctv_human_detection">CCTV Human Detection</a>
+        <a href="/motor_control">Motor Movement Control</a>
+    </div>
+    <div class="main">
+        <h1>Dashboard</h1>
+        <p>Weather: {{ weather.temp }}°C, {{ weather.description }}</p>
+        <div class="toggle">
+            <a href="/dashboard?view=visualization" {% if view == 'visualization' %}style="font-weight: bold;"{% endif %}>Visualization</a>
+            <a href="/dashboard?view=todo" {% if view == 'todo' %}style="font-weight: bold;"{% endif %}>Todo Notes</a>
+        </div>
+        {% if view == 'visualization' %}
+            <div class="sensor-list">
+                <a onclick="updateChart('water_level')">Water Level</a>
+                <a onclick="updateChart('tray_count')">Tray Count</a>
+                <a onclick="updateChart('humidity')">Humidity</a>
+                <a onclick="updateChart('temperature')">Temperature</a>
+                <a onclick="updateChart('ph')">pH</a>
+                <a onclick="triggerTrayCount()">Tray Count (Webcam)</a>
+            </div>
+            <!-- Sensor Control Toggle Buttons -->
+            <div id="sensorControls">
+                <label class="switch">
+                    <input type="checkbox" id="waterLevelToggle" onchange="toggleSensor('water_level', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <label>Water Level</label>
+                <label class="switch">
+                    <input type="checkbox" id="trayCountToggle" onchange="toggleSensor('tray_count', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <label>Tray Count</label>
+                <label class="switch">
+                    <input type="checkbox" id="humidityToggle" onchange="toggleSensor('humidity', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <label>Humidity</label>
+                <label class="switch">
+                    <input type="checkbox" id="temperatureToggle" onchange="toggleSensor('temperature', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <label>Temperature</label>
+                <label class="switch">
+                    <input type="checkbox" id="phToggle" onchange="toggleSensor('ph', this.checked)">
+                    <span class="slider"></span>
+                </label>
+                <label>pH</label>
+            </div>
+            <canvas id="sensorChart" width="400" height="200"></canvas>
+            <script>
+                const token = document.cookie.split('; ').find(row => row.startsWith('access_token=')).split('=')[1];
+                const sensorChart = document.getElementById('sensorChart').getContext('2d');
+                let chart = new Chart(sensorChart, {
+                    type: 'line',
+                    data: {
+                        labels: {{ sensor_data|map(attribute='timestamp')|list|tojson }},
+                        datasets: [{
+                            label: 'Water Level (cm)',
+                            data: {{ sensor_data|map(attribute='water_level')|list|tojson }},
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                async function triggerTrayCount() {
+                    const response = await fetch('/tray_count');
+                    const data = await response.json();
+                    alert('Tray Count: ' + data.tray_count);
+                }
+
+                async function toggleSensor(sensor, state) {
+                    const response = await fetch('/sensors/on_off', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({sensor: sensor, state: state})
+                    });
+                    const data = await response.json();
+
+                    // Apply grayscale effect to visualization and sensor data
+                    const elements = document.querySelectorAll('#sensorChart, .sensor-list, #sensorControls');
+                    elements.forEach(el => {
+                        if (!state) el.classList.add('off');
+                        else el.classList.remove('off');
+                    });
+                }
+
+                function updateChart(sensor) {
+                    let data = [];
+                    let label = '';
+                    switch(sensor) {
+                        case 'water_level':
+                            data = {{ sensor_data|map(attribute='water_level')|list|tojson }};
+                            label = 'Water Level (cm)';
+                            break;
+                        case 'tray_count':
+                            data = {{ sensor_data|map(attribute='tray_count')|list|tojson }};
+                            label = 'Tray Count';
+                            break;
+                        case 'humidity':
+                            data = {{ sensor_data|map(attribute='humidity')|list|tojson }};
+                            label = 'Humidity (%)';
+                            break;
+                        case 'temperature':
+                            data = {{ sensor_data|map(attribute='temperature')|list|tojson }};
+                            label = 'Temperature (°C)';
+                            break;
+                        case 'ph':
+                            data = {{ sensor_data|map(attribute='ph')|list|tojson }};
+                            label = 'pH';
+                            break;
+                    }
+                    chart.data.datasets[0].data = data;
+                    chart.data.datasets[0].label = label;
+                    chart.update();
+                }
+            </script>
+        {% elif view == 'todo' %}
+            <h2>Daily Tasks</h2>
+            {% for todo in todos %}
+                <p>
+                    {{ todo.task }}
+                    {% if not todo.is_done %}
+                        <button onclick="markDone({{ todo.id }})">Mark Done</button>
+                    {% else %}
+                        <span style="color: green;">(Done)</span>
+                    {% endif %}
+                </p>
+            {% endfor %}
+        {% endif %}
+        <!-- Sensor data table (only top row visible) -->
+        <table border="1" style="display: block; overflow: hidden; max-height: 40px;">
+            <tr><th>Timestamp</th><th>Water Level</th><th>Tray Count</th><th>Humidity</th><th>Temperature</th><th>pH</th></tr>
+            {% if sensor_data %}
+                <tr>
+                    <td>{{ sensor_data[0].timestamp }}</td>
+                    <td>{{ sensor_data[0].water_level }}</td>
+                    <td>{{ sensor_data[0].tray_count }}</td>
+                    <td>{{ sensor_data[0].humidity }}</td>
+                    <td>{{ sensor_data[0].temperature }}</td>
+                    <td>{{ sensor_data[0].ph }}</td>
+                </tr>
+            {% endif %}
+        </table>
+        <script>
+            async function markDone(id) {
+                const response = await fetch(`/todos/${id}/done`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                alert(data.message);
+                location.reload();
+            }
+        </script>
+    </div>
+</body>
+</html>

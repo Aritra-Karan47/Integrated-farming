@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Motor Movement Control</title>
+    <style>
+        .disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .off {
+            filter: grayscale(100%);
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/cctv_human_detection">CCTV Human Detection</a>
+        <a href="/motor_control">Motor Movement Control</a>
+    </div>
+    <div class="main">
+        <h1>Motor Movement Control</h1>
+        <h2>Automatic Mode</h2>
+        <form id="automaticForm">
+            <label for="length_auto">Length (units):</label>
+            <input type="number" id="length_auto" name="length" required>
+            <label for="direction_auto">Direction:</label>
+            <select id="direction_auto" name="direction">
+                <option value="forward">Forward</option>
+                <option value="backward">Backward</option>
+            </select>
+            <button type="button" onclick="submitAutomatic()">Start Automatic</button>
+        </form>
+
+        <h2>Manual Mode</h2>
+        <form id="manualForm">
+            <label for="length_manual">Length (units):</label>
+            <input type="number" id="length_manual" name="length" required>
+            <label for="direction_manual">Direction:</label>
+            <select id="direction_manual" name="direction" onchange="updateDirection()">
+                <option value="forward">Forward</option>
+                <option value="backward">Backward</option>
+            </select>
+            <button type="button" id="forwardButton" onclick="moveMotor('forward')">Forward</button>
+            <button type="button" id="backwardButton" onclick="moveMotor('backward')">Backward</button>
+        </form>
+        <p id="motorStatus"></p>
+        <canvas id="motorCanvas" width="400" height="50" style="border:1px solid #000;"></canvas>
+        <script>
+            const token = document.cookie.split('; ').find(row => row.startsWith('access_token=')).split('=')[1];
+            const canvas = document.getElementById('motorCanvas');
+            const ctx = canvas.getContext('2d');
+            let position = 0;
+            let direction = 1;  // 1 for forward, -1 for backward
+            let isAutomaticRunning = false;
+
+            function drawMotor() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.moveTo(0, 25);
+                ctx.lineTo(canvas.width, 25);
+                ctx.stroke();
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(position, 10, 20, 30);
+            }
+
+            drawMotor();
+
+            async function submitAutomatic() {
+                if (isAutomaticRunning) return;
+                isAutomaticRunning = true;
+                const forwardButton = document.getElementById('forwardButton');
+                const backwardButton = document.getElementById('backwardButton');
+                forwardButton.classList.add('disabled');
+                backwardButton.classList.add('disabled');
+
+                const form = document.getElementById('automaticForm');
+                const length = form.length.value;
+                const dir = form.direction.value;
+                direction = dir === 'forward' ? 1 : -1;
+                const response = await fetch('/motor/automated', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({length: parseFloat(length), direction: dir})
+                });
+                const data = await response.json();
+                document.getElementById('motorStatus').innerText = data.message;
+                const interval = setInterval(() => {
+                    position += direction * 5;
+                    if (position > canvas.width - 20 || position < 0) {
+                        clearInterval(interval);
+                        isAutomaticRunning = false;
+                        forwardButton.classList.remove('disabled');
+                        backwardButton.classList.remove('disabled');
+                    }
+                    drawMotor();
+                }, 100);
+
+                form.direction_auto.onchange = () => {
+                    direction = form.direction_auto.value === 'forward' ? 1 : -1;
+                };
+            }
+
+            function updateDirection() {
+                const form = document.getElementById('manualForm');
+                direction = form.direction_manual.value === 'forward' ? 1 : -1;
+            }
+
+            async function moveMotor(dir) {
+                if (isAutomaticRunning) return;
+                const form = document.getElementById('manualForm');
+                const length = form.length_manual.value;
+                direction = dir === 'forward' ? 1 : -1;
+                const response = await fetch('/motor/manual', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({length: parseFloat(length), direction: dir})
+                });
+                const data = await response.json();
+                document.getElementById('motorStatus').innerText = data.message;
+                position += direction * 5; // Move pointer one step
+                if (position > canvas.width - 20) position = canvas.width - 20;
+                if (position < 0) position = 0;
+                drawMotor();
+            }
+        </script>
+    </div>
+</body>
+</html>
