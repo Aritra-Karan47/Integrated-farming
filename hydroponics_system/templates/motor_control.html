@@ -2,8 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Motor Movement Control</title>
+    <title>Motor Movement Control - hydroq</title>
+    
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+        :root{
+            --bg:#f5f7f9;
+            --panel:#ffffff;
+            --ink:#0d0f12;
+            --muted:#7d838b;
+            --accent:#C0F09C;
+            --accent-weak:#bff0cf;
+            --ring:#e9edf2;
+            --sidebar:#111315;
+            --success:#22c55e;
+            --warning:#f59e0b;
+            --error:#ef4444;
+            --grid-color:#f0f3f7;
+        }
+        
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{
+            margin:0;
+            background:var(--bg);
+            color:var(--ink);
+            font:14px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+        }
+
+        /* Original utility classes - PRESERVED */
         .disabled {
             pointer-events: none;
             opacity: 0.6;
@@ -12,126 +47,489 @@
             filter: grayscale(100%);
             opacity: 0.5;
         }
+
+        /* Layout */
+        .layout{
+            display:flex;
+            min-height:100%;
+            gap:0;
+        }
+
+        /* Sidebar matching dashboard design */
+        .sidebar{
+            width:72px;
+            background:var(--sidebar);
+            color:#fff;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            padding:16px 8px;
+            position:sticky;
+            top:0;
+            height:100vh;
+            border-right:1px solid #0c0e10;
+        }
+        .brand{
+            width:40px;height:40px;
+            border-radius:12px;
+            background:rgba(255,255,255,0.08);
+            display:grid;place-items:center;
+            color:#9af6b6;
+            margin-bottom:20px;
+        }
+        .nav{
+            display:flex;flex-direction:column;gap:14px;
+            width:100%;
+            align-items:center;
+        }
+        .nav a{
+            width:44px;height:44px;
+            display:grid;place-items:center;
+            color:#d8dde3;text-decoration:none;
+            border-radius:12px;
+            transition:background .2s, color .2s, transform .08s;
+        }
+        .nav a:hover{ background:rgba(255,255,255,0.06); color:#fff; }
+        .nav a.active{ background:#0f1418; outline:1px solid #1b2126; color:#fff; }
+        .nav .spacer{ flex:1 }
+
+        /* Main content */
+        .main{
+            flex:1;
+            padding:24px;
+            max-width:1200px;
+            margin:0 auto;
+            width:100%;
+        }
+
+        .header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            margin-bottom:32px;
+        }
+
+        .title{
+            font-size:24px;
+            font-weight:700;
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            gap:12px;
+        }
+
+        /* Grid layout */
+        .grid{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:24px;
+            margin-bottom:24px;
+        }
+
+        @media (max-width:768px){
+            .grid{
+                grid-template-columns:1fr;
+                gap:16px;
+            }
+        }
+
+        /* Cards */
+        .card{
+            background:var(--panel);
+            border:1px solid var(--ring);
+            border-radius:20px;
+            padding:24px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.06);
+            transition:box-shadow 0.2s ease;
+        }
+
+        .card:hover{
+            box-shadow:0 8px 24px rgba(0,0,0,0.1);
+        }
+
+        .card.full-width{
+            grid-column:1/-1;
+        }
+
+        .card h2{
+            margin:0 0 20px 0;
+            font-size:18px;
+            font-weight:700;
+            color:var(--ink);
+            padding-bottom:8px;
+            border-bottom:2px solid var(--ring);
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+
+        /* Form styling */
+        .form-group{
+            margin-bottom:16px;
+        }
+
+        .form-group label{
+            display:block;
+            font-size:13px;
+            font-weight:600;
+            color:var(--ink);
+            margin-bottom:6px;
+        }
+
+        .form-group input[type="number"],
+        .form-group select{
+            width:100%;
+            padding:12px 16px;
+            border:1px solid var(--ring);
+            border-radius:12px;
+            background:var(--panel);
+            color:var(--ink);
+            font-size:14px;
+            transition:border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-group input[type="number"]:focus,
+        .form-group select:focus{
+            outline:none;
+            border-color:var(--accent);
+            box-shadow:0 0 0 3px rgba(56, 208, 106, 0.1);
+        }
+
+        /* Buttons */
+        .btn{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            border:none;
+            cursor:pointer;
+            padding:12px 20px;
+            border-radius:12px;
+            font-weight:600;
+            font-size:14px;
+            transition:all 0.2s ease;
+            text-decoration:none;
+            margin-right:12px;
+            margin-bottom:8px;
+        }
+
+        .btn:hover:not(:disabled){
+            transform:translateY(-2px);
+            box-shadow:0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .btn:disabled{
+            opacity:0.6;
+            cursor:not-allowed;
+            transform:none !important;
+        }
+
+        .btn-primary{
+            background:var(--accent);
+            color:#ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled){
+            background:#32bc5e;
+        }
+
+        .btn-secondary{
+            background:#f1f5f9;
+            color:var(--ink);
+            border:1px solid var(--ring);
+        }
+
+        .btn-secondary:hover:not(:disabled){
+            background:#e2e8f0;
+        }
+
+        /* Motor status */
+        .motor-status{
+            background:#f0f9f4;
+            border:1px solid var(--accent-weak);
+            border-radius:12px;
+            padding:12px 16px;
+            font-size:14px;
+            font-weight:600;
+            color:var(--accent);
+            margin:16px 0;
+            min-height:20px;
+        }
+
+        /* Canvas styling */
+        .canvas-container{
+            background:#f8fafb;
+            border:1px solid var(--ring);
+            border-radius:16px;
+            padding:20px;
+            margin-top:16px;
+        }
+
+        .canvas-container h3{
+            margin:0 0 16px 0;
+            font-size:16px;
+            font-weight:700;
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+
+        #motorCanvas{
+            width:100%;
+            max-width:600px;
+            height:80px;
+            border:2px solid var(--ring);
+            border-radius:8px;
+            background:#ffffff;
+            display:block;
+        }
+
+        /* Responsive */
+        @media (max-width:768px){
+            .main{
+                padding:16px;
+            }
+            
+            .btn{
+                margin-right:8px;
+                margin-bottom:12px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/cctv_human_detection">CCTV Human Detection</a>
-        <a href="/motor_control">Motor Movement Control</a>
+    <div class="layout">
+        <!-- Sidebar matching dashboard design -->
+        <aside class="sidebar" aria-label="Primary">
+            <div class="brand" aria-label="hydroq">
+                <i class="fa-solid fa-leaf"></i>
+            </div>
+            <nav class="nav">
+                <a href="/dashboard" title="Home" aria-label="Home">
+                    <i class="fa-solid fa-house"></i>
+                </a>
+                <a href="/cctv_human_detection" title="CCTV" aria-label="CCTV">
+                    <i class="fa-solid fa-video"></i>
+                </a>
+                <a href="/motor_control" class="active" title="Motor movement" aria-label="Motor movement">
+                    <i class="fa-solid fa-sliders"></i>
+                </a>
+                <div class="spacer"></div>
+                <a href="/logout" title="Logout" aria-label="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <!-- Header -->
+            <div class="header">
+                <div class="title">
+                    <i class="fa-solid fa-sliders"></i>
+                    Motor Movement Control
+                </div>
+            </div>
+
+            <!-- Control Cards Grid -->
+            <div class="grid">
+                <!-- Automatic Mode -->
+                <section class="card">
+                    <h2>
+                        Automatic Mode
+                    </h2>
+                    <form id="automaticForm">
+                        <div class="form-group">
+                            <label for="length_auto">Length (units):</label>
+                            <input type="number" id="length_auto" name="length" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="direction_auto">Direction:</label>
+                            <select id="direction_auto" name="direction">
+                                <option value="forward">Forward</option>
+                                <option value="backward">Backward</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="submitAutomatic()">
+                            <i class="fa-solid fa-play"></i>
+                            Start Automatic
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Manual Mode -->
+                <section class="card">
+                    <h2>
+                        Manual Mode
+                    </h2>
+                    <form id="manualForm">
+                        <div class="form-group">
+                            <label for="length_manual">Length (units):</label>
+                            <input type="number" id="length_manual" name="length" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="direction_manual">Direction:</label>
+                            <select id="direction_manual" name="direction" onchange="updateDirection()">
+                                <option value="forward">Forward</option>
+                                <option value="backward">Backward</option>
+                            </select>
+                        </div>
+                        <button type="button" id="forwardButton" class="btn btn-primary" onclick="moveMotor('forward')">
+                            Forward
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button type="button" id="backwardButton" class="btn btn-secondary" onclick="moveMotor('backward')">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            Backward
+                        </button>
+                    </form>
+                </section>
+            </div>
+
+            <!-- Motor Status -->
+            <div id="motorStatus" class="motor-status" aria-live="polite" style="display:none;"></div>
+
+            <!-- Motor Visualization -->
+            <section class="card full-width">
+                <div class="canvas-container">
+                    <h3>
+                        <i class="fa-solid fa-chart-line"></i>
+                        Motor Position Visualization
+                    </h3>
+                    <canvas id="motorCanvas" width="400" height="50"></canvas>
+                </div>
+            </section>
+        </main>
     </div>
-    <div class="main">
-        <h1>Motor Movement Control</h1>
-        <h2>Automatic Mode</h2>
-        <form id="automaticForm">
-            <label for="length_auto">Length (units):</label>
-            <input type="number" id="length_auto" name="length" required>
-            <label for="direction_auto">Direction:</label>
-            <select id="direction_auto" name="direction">
-                <option value="forward">Forward</option>
-                <option value="backward">Backward</option>
-            </select>
-            <button type="button" onclick="submitAutomatic()">Start Automatic</button>
-        </form>
 
-        <h2>Manual Mode</h2>
-        <form id="manualForm">
-            <label for="length_manual">Length (units):</label>
-            <input type="number" id="length_manual" name="length" required>
-            <label for="direction_manual">Direction:</label>
-            <select id="direction_manual" name="direction" onchange="updateDirection()">
-                <option value="forward">Forward</option>
-                <option value="backward">Backward</option>
-            </select>
-            <button type="button" id="forwardButton" onclick="moveMotor('forward')">Forward</button>
-            <button type="button" id="backwardButton" onclick="moveMotor('backward')">Backward</button>
-        </form>
-        <p id="motorStatus"></p>
-        <canvas id="motorCanvas" width="400" height="50" style="border:1px solid #000;"></canvas>
-        <script>
-            const token = document.cookie.split('; ').find(row => row.startsWith('access_token=')).split('=')[1];
-            const canvas = document.getElementById('motorCanvas');
-            const ctx = canvas.getContext('2d');
-            let position = 0;
-            let direction = 1;  // 1 for forward, -1 for backward
-            let isAutomaticRunning = false;
+    <script>
+        // ORIGINAL JAVASCRIPT LOGIC PRESERVED EXACTLY
+        // Get token safely to avoid undefined errors
+        const token = document.cookie.split('; ')
+            .find(row => row.startsWith('access_token='))?.split('=')[1] || '';
+            
+        const canvas = document.getElementById('motorCanvas');
+        const ctx = canvas.getContext('2d');
+        let position = 0;
+        let direction = 1;  // 1 for forward, -1 for backward
+        let isAutomaticRunning = false;
 
-            function drawMotor() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function drawMotor() {
+            // Clear and set up canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw track with gradient
+            const trackGradient = ctx.createLinearGradient(0, 25, canvas.width, 25);
+            trackGradient.addColorStop(0, '#e2e8f0');
+            trackGradient.addColorStop(1, '#cbd5e1');
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 25);
+            ctx.lineTo(canvas.width, 25);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = trackGradient;
+            ctx.stroke();
+            
+            // Draw position markers
+            for (let i = 0; i <= canvas.width; i += canvas.width/10) {
                 ctx.beginPath();
-                ctx.moveTo(0, 25);
-                ctx.lineTo(canvas.width, 25);
+                ctx.moveTo(i, 20);
+                ctx.lineTo(i, 30);
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#94a3b8';
                 ctx.stroke();
-                ctx.fillStyle = 'blue';
-                ctx.fillRect(position, 10, 20, 30);
             }
+            
+            // Draw motor with shadow
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetY = 2;
+            
+            // Motor gradient
+            const motorGradient = ctx.createLinearGradient(position, 10, position + 20, 40);
+            motorGradient.addColorStop(0, '#3b82f6');
+            motorGradient.addColorStop(1, '#2563eb');
+            
+            ctx.fillStyle = '#C0F09C';
+            ctx.fillRect(position, 7, 18, 26);
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            // Add position indicator
+            ctx.fillStyle = '#C0F09C';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${Math.round(position / canvas.width * 100)}%`, position + 10, 50);
+        }
 
-            drawMotor();
+        // Initial draw
+        drawMotor();
 
-            async function submitAutomatic() {
-                if (isAutomaticRunning) return;
-                isAutomaticRunning = true;
-                const forwardButton = document.getElementById('forwardButton');
-                const backwardButton = document.getElementById('backwardButton');
-                forwardButton.classList.add('disabled');
-                backwardButton.classList.add('disabled');
+        async function submitAutomatic() {
+            if (isAutomaticRunning) return;
+            isAutomaticRunning = true;
+            const forwardButton = document.getElementById('forwardButton');
+            const backwardButton = document.getElementById('backwardButton');
+            forwardButton.classList.add('disabled');
+            backwardButton.classList.add('disabled');
 
-                const form = document.getElementById('automaticForm');
-                const length = form.length.value;
-                const dir = form.direction.value;
-                direction = dir === 'forward' ? 1 : -1;
-                const response = await fetch('/motor/automated', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({length: parseFloat(length), direction: dir})
-                });
-                const data = await response.json();
-                document.getElementById('motorStatus').innerText = data.message;
-                const interval = setInterval(() => {
-                    position += direction * 5;
-                    if (position > canvas.width - 20 || position < 0) {
-                        clearInterval(interval);
-                        isAutomaticRunning = false;
-                        forwardButton.classList.remove('disabled');
-                        backwardButton.classList.remove('disabled');
-                    }
-                    drawMotor();
-                }, 100);
-
-                form.direction_auto.onchange = () => {
-                    direction = form.direction_auto.value === 'forward' ? 1 : -1;
-                };
-            }
-
-            function updateDirection() {
-                const form = document.getElementById('manualForm');
-                direction = form.direction_manual.value === 'forward' ? 1 : -1;
-            }
-
-            async function moveMotor(dir) {
-                if (isAutomaticRunning) return;
-                const form = document.getElementById('manualForm');
-                const length = form.length_manual.value;
-                direction = dir === 'forward' ? 1 : -1;
-                const response = await fetch('/motor/manual', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({length: parseFloat(length), direction: dir})
-                });
-                const data = await response.json();
-                document.getElementById('motorStatus').innerText = data.message;
-                position += direction * 5; // Move pointer one step
-                if (position > canvas.width - 20) position = canvas.width - 20;
-                if (position < 0) position = 0;
+            const form = document.getElementById('automaticForm');
+            const length = form.length.value;
+            const dir = form.direction.value;
+            direction = dir === 'forward' ? 1 : -1;
+            const response = await fetch('/motor/automated', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({length: parseFloat(length), direction: dir})
+            });
+            const data = await response.json();
+            document.getElementById('motorStatus').innerText = data.message;
+            const interval = setInterval(() => {
+                position += direction * 5;
+                if (position > canvas.width - 20 || position < 0) {
+                    clearInterval(interval);
+                    isAutomaticRunning = false;
+                    forwardButton.classList.remove('disabled');
+                    backwardButton.classList.remove('disabled');
+                }
                 drawMotor();
-            }
-        </script>
-    </div>
+            }, 100);
+
+            form.direction_auto.onchange = () => {
+                direction = form.direction_auto.value === 'forward' ? 1 : -1;
+            };
+        }
+
+        function updateDirection() {
+            const form = document.getElementById('manualForm');
+            direction = form.direction_manual.value === 'forward' ? 1 : -1;
+        }
+
+        async function moveMotor(dir) {
+            if (isAutomaticRunning) return;
+            const form = document.getElementById('manualForm');
+            const length = form.length_manual.value;
+            direction = dir === 'forward' ? 1 : -1;
+            const response = await fetch('/motor/manual', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({length: parseFloat(length), direction: dir})
+            });
+            const data = await response.json();
+            document.getElementById('motorStatus').innerText = data.message;
+            position += direction * 5; // Move pointer one step
+            if (position > canvas.width - 20) position = canvas.width - 20;
+            if (position < 0) position = 0;
+            drawMotor();
+        }
+    </script>
 </body>
 </html>

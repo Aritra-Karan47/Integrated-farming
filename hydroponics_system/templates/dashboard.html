@@ -1,239 +1,799 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>FarmPlug Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; }
-        .sidebar { background-color: #343a40; padding: 20px; color: white; width: 200px; position: fixed; height: 100%; left: 0; top: 0; }
-        .sidebar a { display: block; margin-bottom: 15px; color: #f8f9fa; text-decoration: none; padding: 8px; border-radius: 4px; transition: background-color 0.3s; }
-        .sidebar a:hover { background-color: #495057; }
-        .main { margin-left: 220px; padding: 20px; }
-        .toggle { margin: 20px 0; background-color: #e9ecef; padding: 10px; border-radius: 5px; }
-        .toggle a { margin-right: 15px; text-decoration: none; color: #495057; padding: 5px 10px; border-radius: 3px; }
-        .toggle a:hover { background-color: #dee2e6; }
-        .sensor-list { margin: 15px 0; background-color: #e9ecef; padding: 10px; border-radius: 5px; }
-        .sensor-list a { margin-right: 15px; cursor: pointer; color: #495057; padding: 5px 10px; border-radius: 3px; }
-        .sensor-list a:hover { background-color: #dee2e6; }
-        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #28a745; }
-        input:checked + .slider:before { transform: translateX(26px); }
-        .off { filter: grayscale(100%); opacity: 0.5; }
-        
-        /* New styles for sensor controls */
-        .sensor-controls { display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; }
-        .sensor-item { display: flex; align-items: center; background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 200px; }
-        .sensor-info { margin-left: 15px; }
-        .sensor-name { display: block; font-weight: bold; color: #343a40; }
-        .sensor-value { display: block; color: #28a745; font-size: 1.2em; margin-top: 5px; }
-        
-        /* Data summary styles */
-        .data-summary { margin-top: 30px; }
-        .data-summary h3 { color: #343a40; margin-bottom: 15px; }
-        .data-card { background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; }
-        .timestamp { color: #6c757d; margin-bottom: 15px; font-size: 0.9em; }
-        .data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .data-item { padding: 15px; border-radius: 6px; background-color: #f8f9fa; }
-        .data-label { font-weight: bold; color: #343a40; margin-bottom: 5px; }
-        .data-value { color: #28a745; font-size: 1.4em; }
-        
-        h1 { color: #343a40; border-bottom: 2px solid #28a745; padding-bottom: 10px; }
-        #sensorChart { background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 20px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        th { background-color: #343a40; color: white; padding: 10px; }
-        td { padding: 10px; border-bottom: 1px solid #dee2e6; }
-        
-        button { background-color: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
-        button:hover { background-color: #218838; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>hydroq Dashboard</title>
+
+  <!-- Font Awesome for icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f7f9;
+      --panel:#ffffff;
+      --ink:#0d0f12;
+      --muted:#7d838b;
+      --accent:#C0F09C;
+      --accent-weak:#bff0cf;
+      --ring:#e9edf2;
+      --sidebar:#111315;
+      --chart-bg:#fafbfc;
+      --grid-color:#f0f3f7;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font:14px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    /* Layout */
+    .layout{
+      display:flex;
+      min-height:100%;
+      gap:0;
+    }
+
+    /* Thin icon-only sidebar */
+    .sidebar{
+      width:72px;
+      background:var(--sidebar);
+      color:#fff;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:16px 8px;
+      position:sticky;
+      top:0;
+      height:100vh;
+      border-right:1px solid #0c0e10;
+    }
+    .brand{
+      width:40px;height:40px;
+      border-radius:12px;
+      background:rgba(255,255,255,0.08);
+      display:grid;place-items:center;
+      color:#9af6b6;
+      margin-bottom:20px;
+    }
+    .nav{
+      display:flex;flex-direction:column;gap:14px;
+      width:100%;
+      align-items:center;
+    }
+    .nav a{
+      width:44px;height:44px;
+      display:grid;place-items:center;
+      color:#d8dde3;text-decoration:none;
+      border-radius:12px;
+      transition:background .2s, color .2s, transform .08s;
+    }
+    .nav a:hover{ background:rgba(255,255,255,0.06); color:#fff; }
+    .nav a.active{ background:#0f1418; outline:1px solid #1b2126; color:#fff; }
+    .nav .spacer{ flex:1 }
+
+    /* Main area */
+    .main{
+      flex:1; padding:24px; max-width:1400px; margin:0 auto; width:100%;
+    }
+    .header{
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:24px;
+    }
+    .title{
+      display:flex; align-items:center; gap:12px;
+      font-weight:700; font-size:22px;
+    }
+    .weather{
+      display:flex; align-items:center; gap:10px;
+      background:var(--panel); border:1px solid var(--ring);
+      padding:12px 16px; border-radius:14px; color:var(--ink);
+      box-shadow:0 2px 4px rgba(0,0,0,0.02);
+    }
+    .weather i{ color:var(--accent); font-size:18px }
+    .weather .desc{ color:var(--muted); font-size:13px }
+
+    /* Header right container */
+    .header-right{
+      display:flex; align-items:center; gap:12px;
+    }
+
+    /* View toggle (styled like Home login/register tabs) */
+    .view-toggle{
+      display:inline-flex;
+      border:1px solid var(--ring);
+      border-radius:12px;
+      overflow:hidden;
+      background:#f0f3f7;
+    }
+    .view-tab{
+      padding:10px 16px;
+      cursor:pointer;
+      border:0;
+      background:transparent;
+      font-weight:600;
+      font-size:14px;
+      color:#2b3036;
+      text-decoration:none;
+      transition:all 0.2s ease;
+    }
+    .view-tab[aria-selected="true"]{
+      background:#0f1113;
+      color:#fff;
+      box-shadow:0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Grid */
+    .grid{
+      display:grid; grid-template-columns: 1fr 360px; gap:24px;
+    }
+    @media (max-width:1100px){ .grid{ grid-template-columns:1fr } }
+
+    /* Cards */
+    .card{
+      background:var(--panel); 
+      border:1px solid var(--ring); 
+      border-radius:18px; 
+      padding:20px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.04);
+      transition:box-shadow 0.2s ease;
+    }
+    .card:hover{
+      box-shadow:0 4px 16px rgba(0,0,0,0.08);
+    }
+    .card h3{ 
+      margin:0 0 16px 0; 
+      font-size:18px; 
+      font-weight:700;
+      color:var(--ink);
+    }
+    .subtle{ color:var(--muted) }
+
+    /* Sensor chips */
+    .chip-row{ 
+      display:flex; 
+      flex-wrap:wrap; 
+      gap:10px; 
+      margin:0 0 20px 0;
+    }
+    .chip{
+      border:1px solid var(--ring); 
+      background:#f8fafb;
+      color:#26303a; 
+      padding:10px 16px; 
+      border-radius:12px; 
+      cursor:pointer;
+      display:flex; 
+      gap:8px; 
+      align-items:center; 
+      font-weight:600; 
+      transition:all .2s ease;
+      font-size:13px;
+    }
+    .chip:hover{ 
+      background:#e9eef3;
+      transform:translateY(-1px);
+      box-shadow:0 4px 8px rgba(0,0,0,0.1);
+    }
+    .chip.active{
+      background:var(--accent);
+      color:#fff;
+      border-color:var(--accent);
+    }
+    .chip.active:hover{
+      background:#32bc5e;
+    }
+    .chip i{ 
+      color:var(--accent);
+      font-size:14px;
+    }
+    .chip.active i{
+      color:#fff;
+    }
+
+    /* Switch list */
+    .switches{ 
+      display:grid; 
+      grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); 
+      gap:12px;
+    }
+    .switch-item{
+      display:flex; 
+      align-items:center; 
+      gap:12px; 
+      padding:14px; 
+      border-radius:14px;
+      background:#f7fafb; 
+      border:1px solid var(--ring);
+      transition:all 0.2s ease;
+    }
+    .switch-item:hover{
+      background:#f0f4f8;
+    }
+    .switch-item .name{ font-weight:700; color:var(--ink) }
+    .switch{
+      position:relative; width:48px; height:28px; flex:0 0 auto;
+    }
+    .switch input{ position:absolute; opacity:0; width:0; height:0 }
+    .slider{
+      position:absolute; inset:0; background:#c9d2dc; border-radius:999px; 
+      transition:all .25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .slider::before{
+      content:""; position:absolute; height:22px; width:22px; left:3px; top:3px; background:#fff;
+      border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.15); 
+      transition:all .25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .switch input:checked + .slider{ background:var(--accent) }
+    .switch input:checked + .slider::before{ transform:translateX(20px) }
+
+    /* Chart container */
+    .chart-wrap{ 
+      height:380px; 
+      position:relative;
+      background:var(--chart-bg);
+      border-radius:12px;
+      padding:16px;
+      border:1px solid var(--grid-color);
+    }
+    .chart-wrap canvas{ 
+      user-select:none;
+      border-radius:8px;
+    }
+
+    /* KPIs */
+    .kpis{ 
+      display:grid; 
+      grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); 
+      gap:12px;
+      margin-top:20px;
+    }
+    .kpi{
+      background:linear-gradient(135deg, #f0fbf4, #e8f7ed);
+      border:1px solid var(--accent-weak); 
+      color:#0f1214;
+      border-radius:16px; 
+      padding:16px;
+      transition:all 0.2s ease;
+    }
+    .kpi:hover{
+      transform:translateY(-2px);
+      box-shadow:0 8px 16px rgba(56, 208, 106, 0.1);
+    }
+    .kpi .label{ 
+      color:#2f3a44; 
+      font-weight:700; 
+      display:flex; 
+      align-items:center; 
+      gap:8px;
+      font-size:13px;
+    }
+    .kpi .value{ 
+      font-size:26px; 
+      font-weight:800; 
+      margin-top:8px;
+      color:var(--ink);
+    }
+    .kpi .label i{ 
+      color:var(--accent);
+      font-size:16px;
+    }
+
+    /* Todo list */
+    .todo-item{
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center;
+      padding:12px 0; 
+      border-bottom:1px dashed var(--ring);
+    }
+    .todo-item:last-child{
+      border-bottom:none;
+    }
+    .btn{
+      display:inline-flex; 
+      align-items:center; 
+      gap:8px; 
+      border:none; 
+      cursor:pointer;
+      padding:8px 12px; 
+      border-radius:10px; 
+      font-weight:600;
+      background:#0f1113; 
+      color:#fff;
+      transition:all 0.2s ease;
+      font-size:13px;
+    }
+    .btn:hover{
+      background:#1a1d21;
+      transform:translateY(-1px);
+      box-shadow:0 4px 8px rgba(0,0,0,0.15);
+    }
+    .btn.secondary{ 
+      background:#e9eef3; 
+      color:#101316;
+    }
+    .btn.secondary:hover{
+      background:#d9e0e7;
+    }
+    .btn.ghost{ 
+      background:transparent; 
+      color:#2e3339;
+    }
+    .muted{ 
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .status{ 
+      font-size:12px; 
+      color:var(--muted); 
+      margin-top:12px;
+      padding:8px 12px;
+      background:#f0f3f7;
+      border-radius:8px;
+      border-left:3px solid var(--accent);
+    }
+    .off{ 
+      filter: grayscale(100%); 
+      opacity:.6;
+      transition:all 0.3s ease;
+    }
+
+    /* Chart title */
+    .chart-title{
+      font-size:16px;
+      font-weight:700;
+      color:var(--ink);
+      margin-bottom:12px;
+      text-align:center;
+    }
+
+  </style>
 </head>
 <body>
-    <div class="sidebar">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/cctv_human_detection">CCTV Human Detection</a>
-        <a href="/motor_control">Motor Movement Control</a>
-        <a href="/logout" style="margin-top: 20px; color: #d9534f;">Logout</a>
-    </div>
-    <div class="main">
-        <h1>Dashboard</h1>
-        <p>Weather: {{ weather.temp }}°C, {{ weather.description }}</p>
-        <div class="toggle">
-            <a href="/dashboard?view=visualization" {% if view == 'visualization' %}style="font-weight: bold;"{% endif %}>Visualization</a>
-            <a href="/dashboard?view=todo" {% if view == 'todo' %}style="font-weight: bold;"{% endif %}>Todo Notes</a>
+  <div class="layout">
+    <!-- Sidebar with icons -->
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand" aria-label="hydroq">
+        <i class="fa-solid fa-leaf"></i>
+      </div>
+      <nav class="nav">
+        <a href="/dashboard" class="active" title="Home" aria-label="Home">
+          <i class="fa-solid fa-house"></i>
+        </a>
+        <a href="/cctv_human_detection" title="CCTV" aria-label="CCTV">
+          <i class="fa-solid fa-video"></i>
+        </a>
+        <a href="/motor_control" title="Motor movement" aria-label="Motor movement">
+          <i class="fa-solid fa-sliders"></i>
+        </a>
+        <div class="spacer"></div>
+        <a href="/logout" title="Logout" aria-label="Logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="header">
+        <div class="title">
+          <span>Dashboard</span>
         </div>
-        {% if view == 'visualization' %}
-            <div class="sensor-list">
-                <a onclick="updateChart('water_level')">Water Level</a>
-                <a onclick="updateChart('tray_count')">Tray Count</a>
-                <a onclick="updateChart('humidity')">Humidity</a>
-                <a onclick="updateChart('temperature')">Temperature</a>
-                <a onclick="updateChart('ph')">pH</a>
-                <a onclick="triggerTrayCount()">Tray Count (Webcam)</a>
+        <div class="header-right">
+          <div class="view-toggle" role="tablist" aria-label="View">
+            <a href="/dashboard?view=visualization" role="tab" class="view-tab" aria-selected="{% if view == 'visualization' %}true{% else %}false{% endif %}">Visualization</a>
+            <a href="/dashboard?view=todo" role="tab" class="view-tab" aria-selected="{% if view == 'todo' %}true{% else %}false{% endif %}">Todo</a>
+          </div>
+          <!-- Weather chip -->
+          <div class="weather" aria-live="polite">
+            <i id="weatherIcon" class="fa-solid"></i>
+            <div>
+              <div><strong>{{ weather.temp }}</strong>°C</div>
+              <div class="desc">{{ weather.description }}</div>
             </div>
-            <!-- Sensor Control Toggle Buttons with Current Values -->
-            <div id="sensorControls" class="sensor-controls">
-                <div class="sensor-item">
-                    <label class="switch">
-                        <input type="checkbox" id="waterLevelToggle" onchange="toggleSensor('water_level', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                    <div class="sensor-info">
-                        <span class="sensor-name">Water Level</span>
-                        <span class="sensor-value">{{ sensor_data[0].water_level }} cm</span>
-                    </div>
-                </div>
-                
-                <div class="sensor-item">
-                    <label class="switch">
-                        <input type="checkbox" id="trayCountToggle" onchange="toggleSensor('tray_count', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                    <div class="sensor-info">
-                        <span class="sensor-name">Tray Count</span>
-                        <span class="sensor-value">{{ sensor_data[0].tray_count }}</span>
-                    </div>
-                </div>
-                
-                <div class="sensor-item">
-                    <label class="switch">
-                        <input type="checkbox" id="humidityToggle" onchange="toggleSensor('humidity', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                    <div class="sensor-info">
-                        <span class="sensor-name">Humidity</span>
-                        <span class="sensor-value">{{ sensor_data[0].humidity }} %</span>
-                    </div>
-                </div>
-                
-                <div class="sensor-item">
-                    <label class="switch">
-                        <input type="checkbox" id="temperatureToggle" onchange="toggleSensor('temperature', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                    <div class="sensor-info">
-                        <span class="sensor-name">Temperature</span>
-                        <span class="sensor-value">{{ sensor_data[0].temperature }} °C</span>
-                    </div>
-                </div>
-                
-                <div class="sensor-item">
-                    <label class="switch">
-                        <input type="checkbox" id="phToggle" onchange="toggleSensor('ph', this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                    <div class="sensor-info">
-                        <span class="sensor-name">pH</span>
-                        <span class="sensor-value">{{ sensor_data[0].ph }}</span>
-                    </div>
-                </div>
+          </div>
+        </div>
+      </div>
+
+      {% if view == 'visualization' %}
+      <div class="grid">
+        <section class="card">
+          <h3>Sensor Data Visualization</h3>
+          <!-- sensor filter chips -->
+          <div class="chip-row">
+            <button class="chip active" onclick="updateChart('water_level', this)">
+              <i class="fa-solid fa-water"></i>Water level
+            </button>
+            <button class="chip" onclick="updateChart('tray_count', this)">
+              <i class="fa-solid fa-border-all"></i>Tray count
+            </button>
+            <button class="chip" onclick="updateChart('humidity', this)">
+              <i class="fa-solid fa-droplet"></i>Humidity
+            </button>
+            <button class="chip" onclick="updateChart('temperature', this)">
+              <i class="fa-solid fa-temperature-half"></i>Temperature
+            </button>
+            <button class="chip" onclick="updateChart('ph', this)">
+              <i class="fa-solid fa-flask"></i>pH
+            </button>
+            <button class="chip" onclick="triggerTrayCount()">
+              <i class="fa-solid fa-camera"></i>Tray count (webcam)
+            </button>
+          </div>
+
+          <!-- chart -->
+          <div class="chart-wrap">
+            <div class="chart-title" id="chartTitle">Water Level Over Time</div>
+            <canvas id="sensorChart" aria-label="Sensor graph"></canvas>
+          </div>
+
+          <!-- KPIs from latest reading -->
+          <div class="kpis">
+            <div class="kpi">
+              <div class="label"><i class="fa-solid fa-water"></i>Water level</div>
+              <div class="value">{{ sensor_data[0].water_level }}<span class="muted"> cm</span></div>
             </div>
-            <canvas id="sensorChart" width="400" height="200"></canvas>
-            <script>
-                const token = document.cookie.split('; ').find(row => row.startsWith('access_token=')).split('=')[1];
-                const sensorChart = document.getElementById('sensorChart').getContext('2d');
-                let chart = new Chart(sensorChart, {
-                    type: 'line',
-                    data: {
-                        labels: {{ sensor_data|map(attribute='timestamp')|list|tojson }},
-                        datasets: [{
-                            label: 'Water Level (cm)',
-                            data: {{ sensor_data|map(attribute='water_level')|list|tojson }},
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1
-                        }]
-                    },
-                    options: {
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
+            <div class="kpi">
+              <div class="label"><i class="fa-solid fa-border-all"></i>Tray count</div>
+              <div class="value">{{ sensor_data[0].tray_count }}</div>
+            </div>
+            <div class="kpi">
+              <div class="label"><i class="fa-solid fa-droplet"></i>Humidity</div>
+              <div class="value">{{ sensor_data[0].humidity }}<span class="muted"> %</span></div>
+            </div>
+            <div class="kpi">
+              <div class="label"><i class="fa-solid fa-temperature-half"></i>Temperature</div>
+              <div class="value">{{ sensor_data[0].temperature }}<span class="muted"> °C</span></div>
+            </div>
+            <div class="kpi">
+              <div class="label"><i class="fa-solid fa-flask"></i>pH</div>
+              <div class="value">{{ sensor_data[0].ph }}</div>
+            </div>
+          </div>
+        </section>
 
-                async function triggerTrayCount() {
-                    const response = await fetch('/tray_count');
-                    const data = await response.json();
-                    alert('Tray Count: ' + data.tray_count);
-                }
+        <aside class="card">
+          <h3>Sensor Controls</h3>
+          <p class="subtle">Toggle sensors (default ON)</p>
+          <div id="sensorControls" class="switches">
+            <div class="switch-item">
+              <label class="switch">
+                <input type="checkbox" id="waterLevelToggle" checked onchange="toggleSensor('water_level', this.checked)">
+                <span class="slider"></span>
+              </label>
+              <div>
+                <div class="name">Water level</div>
+                <div class="muted">Current: {{ sensor_data[0].water_level }} cm</div>
+              </div>
+            </div>
 
-                async function toggleSensor(sensor, state) {
-                    const response = await fetch('/sensors/on_off', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({sensor: sensor, state: state})
-                    });
-                    const data = await response.json();
+            <div class="switch-item">
+              <label class="switch">
+                <input type="checkbox" id="trayCountToggle" checked onchange="toggleSensor('tray_count', this.checked)">
+                <span class="slider"></span>
+              </label>
+              <div>
+                <div class="name">Tray count</div>
+                <div class="muted">Current: {{ sensor_data[0].tray_count }}</div>
+              </div>
+            </div>
 
-                    // Apply grayscale effect to visualization and sensor data
-                    const elements = document.querySelectorAll('#sensorChart, .sensor-list, #sensorControls');
-                    elements.forEach(el => {
-                        if (!state) el.classList.add('off');
-                        else el.classList.remove('off');
-                    });
-                }
+            <div class="switch-item">
+              <label class="switch">
+                <input type="checkbox" id="humidityToggle" checked onchange="toggleSensor('humidity', this.checked)">
+                <span class="slider"></span>
+              </label>
+              <div>
+                <div class="name">Humidity</div>
+                <div class="muted">Current: {{ sensor_data[0].humidity }} %</div>
+              </div>
+            </div>
 
-                function updateChart(sensor) {
-                    let data = [];
-                    let label = '';
-                    switch(sensor) {
-                        case 'water_level':
-                            data = {{ sensor_data|map(attribute='water_level')|list|tojson }};
-                            label = 'Water Level (cm)';
-                            break;
-                        case 'tray_count':
-                            data = {{ sensor_data|map(attribute='tray_count')|list|tojson }};
-                            label = 'Tray Count';
-                            break;
-                        case 'humidity':
-                            data = {{ sensor_data|map(attribute='humidity')|list|tojson }};
-                            label = 'Humidity (%)';
-                            break;
-                        case 'temperature':
-                            data = {{ sensor_data|map(attribute='temperature')|list|tojson }};
-                            label = 'Temperature (°C)';
-                            break;
-                        case 'ph':
-                            data = {{ sensor_data|map(attribute='ph')|list|tojson }};
-                            label = 'pH';
-                            break;
-                    }
-                    chart.data.datasets[0].data = data;
-                    chart.data.datasets[0].label = label;
-                    chart.update();
-                }
-            </script>
-        {% elif view == 'todo' %}
-            <h2>Daily Tasks</h2>
-            {% for todo in todos %}
-                <p>
-                    {{ todo.task }}
-                    {% if not todo.is_done %}
-                        <button onclick="markDone({{ todo.id }})">Mark Done</button>
-                    {% else %}
-                        <span style="color: green;">(Done)</span>
-                    {% endif %}
-                </p>
-            {% endfor %}
-        {% endif %}
-        <script>
-            async function markDone(id) {
-                const response = await fetch(`/todos/${id}/done`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                alert(data.message);
-                location.reload();
+            <div class="switch-item">
+              <label class="switch">
+                <input type="checkbox" id="temperatureToggle" checked onchange="toggleSensor('temperature', this.checked)">
+                <span class="slider"></span>
+              </label>
+              <div>
+                <div class="name">Temperature</div>
+                <div class="muted">Current: {{ sensor_data[0].temperature }} °C</div>
+              </div>
+            </div>
+
+            <div class="switch-item">
+              <label class="switch">
+                <input type="checkbox" id="phToggle" checked onchange="toggleSensor('ph', this.checked)">
+                <span class="slider"></span>
+              </label>
+              <div>
+                <div class="name">pH</div>
+                <div class="muted">Current: {{ sensor_data[0].ph }}</div>
+              </div>
+            </div>
+          </div>
+          <div id="status" class="status" aria-live="polite" style="display:none;"></div>
+        </aside>
+      </div>
+      {% elif view == 'todo' %}
+      <section class="card">
+        <h3>Daily Tasks</h3>
+        {% for todo in todos %}
+        <div class="todo-item">
+          <div>{{ todo.task }}</div>
+          <div>
+            {% if not todo.is_done %}
+              <button class="btn" onclick="markDone({{ todo.id }})">
+                <i class="fa-solid fa-check"></i>Mark done
+              </button>
+            {% else %}
+              <span class="muted">
+                <i class="fa-solid fa-circle-check" style="color:var(--accent)"></i> Done
+              </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+    </main>
+  </div>
+
+  <script>
+    // token from cookies (robust)
+    const tokenCookie = document.cookie.split('; ').find(r => r.startsWith('access_token='));
+    const token = tokenCookie ? tokenCookie.split('=')[1] : '';
+
+    // Weather icon selection based on backend description (no hardcoded weather)
+    (function setWeatherIcon() {
+      const el = document.getElementById('weatherIcon');
+      const desc = ("{{ weather.description }}".toLowerCase());
+      let icon = "fa-cloud";
+      if (desc.includes("mist") || desc.includes("fog") || desc.includes("haze")) icon = "fa-smog";
+      else if (desc.includes("sunny") || desc.includes("clear")) icon = "fa-sun";
+      else if (desc.includes("rain")) icon = "fa-cloud-showers-heavy";
+      else if (desc.includes("storm") || desc.includes("thunder")) icon = "fa-cloud-bolt";
+      el.classList.add(icon);
+    })();
+
+    // Chart.js setup with improved styling
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+
+    const labels = {{ sensor_data|map(attribute='timestamp')|list|tojson }};
+    const series = {
+      water_level: {{ sensor_data|map(attribute='water_level')|list|tojson }},
+      tray_count:  {{ sensor_data|map(attribute='tray_count')|list|tojson }},
+      humidity:    {{ sensor_data|map(attribute='humidity')|list|tojson }},
+      temperature: {{ sensor_data|map(attribute='temperature')|list|tojson }},
+      ph:          {{ sensor_data|map(attribute='ph')|list|tojson }},
+    };
+
+    const colors = {
+      water_level: "#38d06a",
+      tray_count:  "#2db2ff",
+      humidity:    "#7c6cff",
+      temperature: "#ff9f2d",
+      ph:          "#ff5f8f",
+    };
+
+    const chartTitles = {
+      water_level: "Water Level Over Time",
+      tray_count:  "Tray Count Over Time",
+      humidity:    "Humidity Over Time",
+      temperature: "Temperature Over Time",
+      ph:          "pH Level Over Time",
+    };
+
+    function makeGradient(color){
+      const g = ctx.createLinearGradient(0, 0, 0, 300);
+      g.addColorStop(0, color + "40");  // ~25% opacity at top
+      g.addColorStop(0.7, color + "20");  // ~12% opacity
+      g.addColorStop(1, color + "05");    // ~2% opacity at bottom
+      return g;
+    }
+
+    function movingAverage(arr, windowSize = 4){
+      if(!arr || !arr.length) return [];
+      const out = [];
+      for(let i = 0; i < arr.length; i++){
+        const start = Math.max(0, i - windowSize + 1);
+        const slice = arr.slice(start, i + 1);
+        const avg = slice.reduce((a, b) => a + (+b || 0), 0) / slice.length;
+        out.push(+avg.toFixed(2));
+      }
+      return out;
+    }
+
+    let activeKey = 'water_level';
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Water Level (cm)',
+            data: series.water_level,
+            borderColor: colors.water_level,
+            backgroundColor: makeGradient(colors.water_level),
+            fill: true,
+            borderWidth: 3,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBorderWidth: 2,
+            pointHoverBackgroundColor: '#ffffff',
+            borderCapStyle: 'round',
+            borderJoinStyle: 'round'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: { 
+            display: false 
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 17, 19, 0.95)',
+            titleColor: '#ffffff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#374151',
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 12,
+            displayColors: false,
+            titleFont: {
+              size: 13,
+              weight: '600'
+            },
+            bodyFont: {
+              size: 12
             }
-        </script>
-    </div>
+          }
+        },
+        scales: {
+          x: { 
+            grid: {
+              display: false,
+              drawBorder: false
+            },
+            ticks: {
+              display: false
+            },
+            border: {
+              display: false
+            }
+          },
+          y: { 
+            grid: {
+              display: false,
+              drawBorder: false
+            },
+            ticks: { 
+              color: '#64748b',
+              font: {
+                size: 11
+              }
+            }, 
+            beginAtZero: true,
+            border: {
+              display: false
+            }
+          }
+        },
+        elements: {
+          point: {
+            hoverBorderColor: '#ffffff'
+          }
+        }
+      }
+    });
+
+    // Update chart with selected sensor using backend data arrays
+    function updateChart(sensorKey, chipElement){
+      // Update active chip styling
+      document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+      chipElement.classList.add('active');
+      
+      activeKey = sensorKey;
+      const palette = colors[sensorKey] || colors.water_level;
+      
+      // Update chart title
+      document.getElementById('chartTitle').textContent = chartTitles[sensorKey] || 'Sensor Data Over Time';
+      
+      chart.data.datasets[0].data = series[sensorKey];
+      chart.data.datasets[0].label =
+        sensorKey === 'water_level' ? 'Water Level (cm)' :
+        sensorKey === 'tray_count'  ? 'Tray Count' :
+        sensorKey === 'humidity'    ? 'Humidity (%)' :
+        sensorKey === 'temperature' ? 'Temperature (°C)' : 'pH';
+
+      chart.data.datasets[0].borderColor = palette;
+      chart.data.datasets[0].backgroundColor = makeGradient(palette);
+      chart.update('show');
+    }
+
+    // Webcam tray count trigger → show inline status (no alerts)
+    async function triggerTrayCount(){
+      const statusEl = document.getElementById('status');
+      statusEl.style.display = 'block';
+      statusEl.textContent = 'Processing webcam image...';
+      
+      try {
+        const res = await fetch('/tray_count');
+        const data = await res.json();
+        statusEl.textContent = `Webcam tray count: ${data.tray_count}`;
+        statusEl.style.borderLeftColor = 'var(--accent)';
+      } catch (error) {
+        statusEl.textContent = 'Error processing webcam image';
+        statusEl.style.borderLeftColor = '#ef4444';
+      }
+      
+      setTimeout(() => { 
+        statusEl.style.display = 'none';
+        statusEl.textContent = '';
+      }, 5000);
+    }
+
+    // Toggle sensors: keep grayscale effect, call backend; default switches are checked (ON)
+    async function toggleSensor(sensor, state){
+      try{
+        await fetch('/sensors/on_off', {
+          method:'POST',
+          headers:{
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sensor, state })
+        });
+
+        const affected = document.querySelectorAll('#sensorChart, .chip-row, #sensorControls');
+        affected.forEach(el => state ? el.classList.remove('off') : el.classList.add('off'));
+        
+        const statusEl = document.getElementById('status');
+        statusEl.style.display = 'block';
+        statusEl.textContent = `${sensor.replace('_', ' ')} sensor ${state ? 'enabled' : 'disabled'}`;
+        statusEl.style.borderLeftColor = state ? 'var(--accent)' : '#ef4444';
+        
+        setTimeout(() => { 
+          statusEl.style.display = 'none';
+        }, 3000);
+      } catch(e) {
+        // silently ignore UI noise; backend governs truth
+      }
+    }
+
+    // Todo actions
+    async function markDone(id){
+      try {
+        await fetch(`/todos/${id}/done`, {
+          method:'POST',
+          headers:{
+            'Authorization': `Bearer ${token}`,
+            'Content-Type':'application/json'
+          }
+        });
+        location.reload();
+      } catch(error) {
+        console.error('Error marking todo as done:', error);
+      }
+    }
+  </script>
 </body>
 </html>

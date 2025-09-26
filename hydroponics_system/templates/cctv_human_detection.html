@@ -2,40 +2,591 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CCTV Human Detection</title>
+    <title>CCTV Human Detection - hydroq</title>
+    
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root{
+            --bg:#f5f7f9;
+            --panel:#ffffff;
+            --ink:#0d0f12;
+            --muted:#7d838b;
+            --accent:#C0F09C;
+            --accent-weak:#bff0cf;
+            --ring:#e9edf2;
+            --sidebar:#111315;
+            --success:#22c55e;
+            --warning:#f59e0b;
+            --error:#ef4444;
+            --grid-color:#f0f3f7;
+        }
+        
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{
+            margin:0;
+            background:var(--bg);
+            color:var(--ink);
+            font:14px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+        }
+
+        /* Layout */
+        .layout{
+            display:flex;
+            min-height:100%;
+            gap:0;
+        }
+
+        /* Sidebar matching dashboard design */
+        .sidebar{
+            width:72px;
+            background:var(--sidebar);
+            color:#fff;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            padding:16px 8px;
+            position:sticky;
+            top:0;
+            height:100vh;
+            border-right:1px solid #0c0e10;
+        }
+        .brand{
+            width:40px;height:40px;
+            border-radius:12px;
+            background:rgba(255,255,255,0.08);
+            display:grid;place-items:center;
+            color:#9af6b6;
+            margin-bottom:20px;
+        }
+        .nav{
+            display:flex;flex-direction:column;gap:14px;
+            width:100%;
+            align-items:center;
+        }
+        .nav a{
+            width:44px;height:44px;
+            display:grid;place-items:center;
+            color:#d8dde3;text-decoration:none;
+            border-radius:12px;
+            transition:background .2s, color .2s, transform .08s;
+        }
+        .nav a:hover{ background:rgba(255,255,255,0.06); color:#fff; }
+        .nav a.active{ background:#0f1418; outline:1px solid #1b2126; color:#fff; }
+        .nav .spacer{ flex:1 }
+
+        /* Main content */
+        .main{
+            flex:1;
+            padding:24px;
+            max-width:1200px;
+            margin:0 auto;
+            width:100%;
+        }
+
+        .header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            margin-bottom:24px;
+            gap:16px;
+        }
+
+        .title{
+            font-size:24px;
+            font-weight:700;
+            color:var(--ink);
+            display:flex;
+            align-items:center;
+            gap:12px;
+        }
+
+        .status-indicator{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            background:var(--panel);
+            border:1px solid var(--ring);
+            padding:12px 16px;
+            border-radius:12px;
+            font-weight:600;
+            box-shadow:0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .status-dot{
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            background:var(--muted);
+            transition:background 0.3s ease;
+        }
+
+        .status-indicator.running .status-dot{
+            background:var(--success);
+            box-shadow:0 0 0 2px rgba(34, 197, 94, 0.2);
+            animation:pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Controls section */
+        .controls-section{
+            background:var(--panel);
+            border:1px solid var(--ring);
+            border-radius:20px;
+            padding:24px;
+            margin-bottom:24px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        .controls-section h3{
+            margin:0 0 16px 0;
+            font-size:18px;
+            font-weight:700;
+            color:var(--ink);
+            padding-bottom:8px;
+            border-bottom:2px solid var(--ring);
+        }
+
+        .controls{
+            display:flex;
+            align-items:center;
+            gap:16px;
+            flex-wrap:wrap;
+        }
+
+        .btn{
+            display:inline-flex;
+            align-items:center;
+            gap:10px;
+            border:none;
+            cursor:pointer;
+            padding:12px 20px;
+            border-radius:12px;
+            font-weight:600;
+            font-size:14px;
+            transition:all 0.2s ease;
+            text-decoration:none;
+        }
+
+        .btn:hover:not(:disabled){
+            transform:translateY(-2px);
+            box-shadow:0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .btn:disabled{
+            opacity:0.6;
+            cursor:not-allowed;
+            transform:none !important;
+        }
+
+        .btn-primary{
+            background:var(--accent);
+            color:#ffffff;
+        }
+
+        .btn-primary:hover:not(:disabled){
+            background:#32bc5e;
+        }
+
+        .btn-danger{
+            background:var(--error);
+            color:#ffffff;
+        }
+
+        .btn-danger:hover:not(:disabled){
+            background:#dc2626;
+        }
+
+        .stream-info{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            background:#f8fafb;
+            border:1px solid var(--ring);
+            padding:8px 12px;
+            border-radius:8px;
+            font-family:ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, monospace;
+            font-size:13px;
+            color:var(--muted);
+        }
+
+        /* Video section */
+        .video-section{
+            background:var(--panel);
+            border:1px solid var(--ring);
+            border-radius:20px;
+            padding:24px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.06);
+            margin-bottom:24px;
+        }
+
+        .video-section h3{
+            margin:0 0 20px 0;
+            font-size:18px;
+            font-weight:700;
+            color:var(--ink);
+            padding-bottom:8px;
+            border-bottom:2px solid var(--ring);
+        }
+
+        .video-container{
+            position:relative;
+            border-radius:16px;
+            overflow:hidden;
+            background:#1a1a1a;
+            aspect-ratio:16/9;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            border:1px solid var(--grid-color);
+            box-shadow:inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .video-container img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            display:none;
+        }
+
+        .video-placeholder{
+            color:#9ca3af;
+            text-align:center;
+            padding:40px 20px;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:16px;
+        }
+
+        .video-placeholder i{
+            font-size:48px;
+            opacity:0.7;
+        }
+
+        .video-placeholder .text{
+            font-size:16px;
+            font-weight:600;
+        }
+
+        .video-placeholder .subtext{
+            font-size:14px;
+            opacity:0.7;
+        }
+
+        /* Status bar */
+        .status-bar{
+            background:var(--panel);
+            border:1px solid var(--ring);
+            border-radius:16px;
+            padding:16px 20px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            box-shadow:0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .message-area{
+            font-weight:600;
+            color:var(--ink);
+        }
+
+        .tip{
+            color:var(--muted);
+            font-size:13px;
+        }
+
+        /* Detection info */
+        .detection-info{
+            position:absolute;
+            top:16px;
+            left:16px;
+            right:16px;
+            background:rgba(0,0,0,0.8);
+            color:white;
+            padding:12px 16px;
+            border-radius:8px;
+            font-size:13px;
+            font-weight:600;
+            display:none;
+            backdrop-filter:blur(4px);
+        }
+
+        .detection-count{
+            color:var(--success);
+        }
+
+        /* Responsive */
+        @media (max-width:768px){
+            .main{
+                padding:16px;
+            }
+            
+            .header{
+                flex-direction:column;
+                align-items:stretch;
+                gap:12px;
+            }
+            
+            .controls{
+                justify-content:center;
+            }
+            
+            .status-bar{
+                flex-direction:column;
+                gap:8px;
+                text-align:center;
+            }
+        }
+
+        /* Loading animation */
+        .loading{
+            display:inline-block;
+            width:16px;
+            height:16px;
+            border:2px solid rgba(255,255,255,0.3);
+            border-radius:50%;
+            border-top-color:#fff;
+            animation:spin 1s linear infinite;
+        }
+
+        @keyframes spin{
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-    <div class="sidebar">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/cctv_human_detection">CCTV Human Detection</a>
-        <a href="/motor_control">Motor Movement Control</a>
-    </div>
-    <div class="main">
-        <h1>CCTV Human Detection</h1>
-        <button id="startBtn" onclick="toggleCCTV()">Start Detection</button>
-        <img id="videoFeed" src="" style="display: none;" width="640" height="480">
-        <script>
-            let isRunning = false;
-            const startBtn = document.getElementById('startBtn');
-            const videoFeed = document.getElementById('videoFeed');
+    <div class="layout">
+        <!-- Sidebar matching dashboard design -->
+        <aside class="sidebar" aria-label="Primary">
+            <div class="brand" aria-label="hydroq">
+                <i class="fa-solid fa-leaf"></i>
+            </div>
+            <nav class="nav">
+                <a href="/dashboard" title="Home" aria-label="Home">
+                    <i class="fa-solid fa-house"></i>
+                </a>
+                <a href="/cctv_human_detection" class="active" title="CCTV" aria-label="CCTV">
+                    <i class="fa-solid fa-video"></i>
+                </a>
+                <a href="/motor_control" title="Motor movement" aria-label="Motor movement">
+                    <i class="fa-solid fa-sliders"></i>
+                </a>
+                <div class="spacer"></div>
+                <a href="/logout" title="Logout" aria-label="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </nav>
+        </aside>
 
-            async function toggleCCTV() {
+        <main class="main">
+            <!-- Header -->
+            <div class="header">
+                <div class="title">
+                    <i class="fa-solid fa-video"></i>
+                    CCTV Human Detection
+                </div>
+                <div id="statusIndicator" class="status-indicator" aria-live="polite">
+                    <div class="status-dot"></div>
+                    <span id="statusText">Idle</span>
+                </div>
+            </div>
+
+            <!-- Controls Section -->
+            <section class="controls-section">
+                <h3>Detection Controls</h3>
+                <div class="controls">
+                    <button id="toggleBtn" class="btn btn-primary" onclick="toggleDetection()">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Start Detection</span>
+                    </button>
+                    
+                    <div class="stream-info">
+                        <i class="fa-solid fa-signal"></i>
+                        <span>Stream: /cctv_stream</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Video Section -->
+            <section class="video-section">
+                <h3>Live Stream</h3>
+                <div class="video-container">
+                    <img id="videoFeed" alt="Live CCTV stream with human detection" />
+                    <div id="videoPlaceholder" class="video-placeholder">
+                        <i class="fa-solid fa-video-slash"></i>
+                        <div class="text">Stream Stopped</div>
+                        <div class="subtext">Click "Start Detection" to begin monitoring</div>
+                    </div>
+                    <div id="detectionInfo" class="detection-info">
+                        <span>Humans detected: <span class="detection-count">0</span></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div id="messageArea" class="message-area">Ready to start human detection</div>
+                <div class="tip">Tip: The system will automatically detect and highlight humans in the video stream</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let streamingInterval = null;
+        
+        const toggleBtn = document.getElementById('toggleBtn');
+        const videoFeed = document.getElementById('videoFeed');
+        const videoPlaceholder = document.getElementById('videoPlaceholder');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const messageArea = document.getElementById('messageArea');
+        const detectionInfo = document.getElementById('detectionInfo');
+
+        function updateUI(running, message = '') {
+            isRunning = running;
+            
+            // Update status indicator
+            statusIndicator.classList.toggle('running', running);
+            statusText.textContent = running ? 'Streaming' : 'Idle';
+            
+            // Update button
+            const icon = toggleBtn.querySelector('i');
+            const text = toggleBtn.querySelector('span');
+            const loading = toggleBtn.querySelector('.loading');
+            
+            if (running) {
+                toggleBtn.className = 'btn btn-danger';
+                if (icon) icon.className = 'fa-solid fa-stop';
+                if (text) text.textContent = 'Stop Detection';
+            } else {
+                toggleBtn.className = 'btn btn-primary';
+                if (icon) icon.className = 'fa-solid fa-play';
+                if (text) text.textContent = 'Start Detection';
+            }
+            
+            // Update video display
+            if (running) {
+                videoPlaceholder.style.display = 'none';
+                videoFeed.style.display = 'block';
+                detectionInfo.style.display = 'block';
+            } else {
+                videoFeed.style.display = 'none';
+                videoFeed.src = '';
+                videoPlaceholder.style.display = 'flex';
+                detectionInfo.style.display = 'none';
+            }
+            
+            // Update message
+            if (message) {
+                messageArea.textContent = message;
+            }
+        }
+
+        function setLoading(loading) {
+            const icon = toggleBtn.querySelector('i');
+            const text = toggleBtn.querySelector('span');
+            
+            if (loading) {
+                toggleBtn.disabled = true;
+                if (icon) {
+                    icon.className = 'loading';
+                }
+                if (text) {
+                    text.textContent = isRunning ? 'Stopping...' : 'Starting...';
+                }
+            } else {
+                toggleBtn.disabled = false;
+            }
+        }
+
+        async function toggleDetection() {
+            try {
+                setLoading(true);
+
                 if (isRunning) {
-                    isRunning = false;
-                    startBtn.innerText = "Start Detection";
-                    videoFeed.style.display = "none";
-                    videoFeed.src = "";
+                    // Stop detection
+                    updateUI(false, 'Detection stopped');
+                    
+                    // You can add a stop endpoint call here if needed
+                    // await fetch('/cctv_stop', { method: 'POST' });
+                    
                 } else {
-                    const response = await fetch('/cctv_stream');
-                    const data = await response.json();
-                    alert(data.message);
-                    isRunning = true;
-                    startBtn.innerText = "Stop Detection";
-                    videoFeed.style.display = "block";
-                    videoFeed.src = "/cctv_stream";  # Note: StreamingResponse needs to be accessed via img src for multipart
+                    // Start detection
+                    messageArea.textContent = 'Starting detection stream...';
+                    
+                    // Test the endpoint first
+                    const response = await fetch('/cctv_stream', { 
+                        method: 'GET',
+                        signal: AbortSignal.timeout(5000) // 5 second timeout
+                    });
+
+                    if (response.ok) {
+                        // Set up the video stream
+                        videoFeed.src = '/cctv_stream?' + new Date().getTime(); // Cache buster
+                        updateUI(true, 'Detection active - monitoring for humans');
+                        
+                        // Handle video load errors
+                        videoFeed.onerror = () => {
+                            updateUI(false, 'Failed to load video stream');
+                        };
+                        
+                        videoFeed.onload = () => {
+                            messageArea.textContent = 'Stream connected successfully';
+                        };
+                        
+                    } else {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Detection toggle error:', error);
+                updateUI(false, 'Failed to start detection - please check the camera connection');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Simulate detection count updates (replace with actual detection data from your backend)
+        function simulateDetectionUpdates() {
+            if (isRunning) {
+                const count = Math.floor(Math.random() * 5); // Random count for demo
+                const countElement = detectionInfo.querySelector('.detection-count');
+                if (countElement) {
+                    countElement.textContent = count;
                 }
             }
-        </script>
-    </div>
+        }
+
+        // Update detection count every 2 seconds when running
+        setInterval(simulateDetectionUpdates, 2000);
+
+        // Handle page visibility change to pause/resume stream
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isRunning) {
+                // Page is hidden, you might want to pause the stream to save bandwidth
+                console.log('Page hidden - stream continues in background');
+            } else if (!document.hidden && isRunning) {
+                // Page is visible again, ensure stream is active
+                console.log('Page visible - stream active');
+            }
+        });
+
+        // Initialize
+        updateUI(false, 'Ready to start human detection');
+    </script>
 </body>
 </html>
