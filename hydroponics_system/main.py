@@ -268,6 +268,12 @@ async def login_for_access_token(username: str = Form(...), password: str = Form
     response.set_cookie(key="access_token", value=access_token)
     return response
 
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie(key="access_token")
+    return response
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("home.html", {"request": request})
